@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import { Notification } from '../hooks/useGameEngine';
 
 interface NotificationListProps {
@@ -8,18 +8,20 @@ interface NotificationListProps {
 
 export const NotificationList: React.FC<NotificationListProps> = ({ notifications }) => {
   return (
-    <div className="absolute top-20 left-0 right-0 z-50 flex flex-col items-center gap-2 pointer-events-none">
+    <div className="pointer-events-none absolute right-4 top-4 z-50 flex w-full max-w-sm flex-col items-end gap-2 sm:right-6 sm:top-6">
       <AnimatePresence>
-        {notifications.map(note => (
+        {notifications.map((note) => (
           <motion.div
             key={note.id}
-            initial={{ opacity: 0, y: -20, scale: 0.9 }}
+            initial={{ opacity: 0, y: -16, scale: 0.94 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.9 }}
-            className={`px-4 py-2 rounded-full text-xs font-bold shadow-lg backdrop-blur-md ${
-              note.type === 'positive' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
-              note.type === 'negative' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
-              'bg-zinc-800/80 text-zinc-300 border border-zinc-700'
+            exit={{ opacity: 0, y: -10, scale: 0.94 }}
+            className={`w-full rounded-2xl border px-4 py-3 text-xs font-medium shadow-[0_18px_40px_rgba(0,0,0,0.24)] backdrop-blur-md ${
+              note.type === 'positive'
+                ? 'border-[rgba(79,208,166,0.28)] bg-[rgba(79,208,166,0.14)] text-[var(--text-primary)]'
+                : note.type === 'negative'
+                  ? 'border-[rgba(242,139,151,0.28)] bg-[rgba(242,139,151,0.12)] text-[var(--text-primary)]'
+                  : 'border-white/10 bg-[rgba(7,17,22,0.82)] text-[var(--text-muted)]'
             }`}
           >
             {note.text}
