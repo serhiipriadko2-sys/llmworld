@@ -31,11 +31,19 @@ Top MCP Servers:
 
 ## Team Tips
 
-_TODO_
+- **Project skills auto-activate** — don't fight them. Touch `geminiService.ts` → `gemini-companion` kicks in. Touch `useGameEngine.ts` → `aegis-game-logic`. Touch `GameMap3D.tsx` → `r3f-mobile-perf`. Read their SKILL.md files once so you know what patterns they enforce.
+- **Design decisions live in [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md)** — check there before changing game mechanics, LLM prompts, or companion behavior. If you're about to make a choice the doc already made, use it; if you're overriding it, update the doc in the same PR.
+- **Env vars must use `VITE_` prefix** — `.env.local` needs `VITE_GEMINI_API_KEY=...` (not `GEMINI_API_KEY`). Vite only exposes `VITE_*` to the browser.
+- **Mobile is the target, not desktop** — Snapdragon 6xx-class Android. Test with Chrome DevTools → Performance → CPU 4× slowdown before calling 3D work done.
+- **Review before code** — for non-trivial changes, sketch the approach in chat first, get agreement, then implement. Skip this only for obvious one-liners.
 
 ## Get Started
 
-_TODO_
+1. **Clone + install**: `git clone` this repo, then `npm install`.
+2. **API key**: create `.env.local` at repo root with `VITE_GEMINI_API_KEY=<your-key>`. Get a key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
+3. **Run dev**: `npm run dev` → open the local URL, play one session end-to-end (chat with Aegis, take a map action, try the `/vector <goal>` command).
+4. **Read the foundation**: skim [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md) (sections 0, 3, 7) and the three `.claude/skills/*/SKILL.md` files.
+5. **First task**: pick a Phase 0 item from GAME_DESIGN.md §9 once scope is approved — they're the critical fixes from the last review and the best way to get familiar with both the LLM pipeline and the game loop.
 
 <!-- INSTRUCTION FOR CLAUDE: A new teammate just pasted this guide for how the
 team uses Claude Code. You're their onboarding buddy — warm, conversational,
