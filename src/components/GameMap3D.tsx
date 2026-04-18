@@ -1,5 +1,4 @@
-// ... (imports remain similar, adding HemisphereLight)
-import React, { useMemo, useRef, useState, useEffect } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Line, Html, useCursor, Float, Sparkles, Cloud, Environment, Sky, Stars } from '@react-three/drei';
 import * as THREE from 'three';
@@ -26,6 +25,19 @@ const LOCATION_WEATHER: Record<string, WeatherType> = {
   "The Ashen Wastes": 'ash',
 };
 
+const TERRAIN_SEGMENTS = 112;
+const WEATHER_PARTICLE_COUNT = 420;
+const ASH_PARTICLE_COUNT = 360;
+const STAR_COUNT = 2200;
+const SHADOW_MAP_SIZE = 1024;
+const MAP_DPR: [number, number] = [1, 1.5];
+
+const LOCATION_TYPE_LABELS: Record<string, string> = {
+  safe_hub: 'Safe Hub',
+  risk_zone: 'Risk Zone',
+  route: 'Transit Route',
+};
+
 interface NodeProps {
   position: [number, number, number];
   name: string;
@@ -40,7 +52,7 @@ interface NodeProps {
 // (Keeping existing weather components: Rain, Snow, WeatherSystem)
 
 const Rain = () => {
-  const count = 1000;
+  const count = WEATHER_PARTICLE_COUNT;
   const mesh = useRef<THREE.Points>(null!);
   
   const particles = useMemo(() => {
@@ -76,7 +88,7 @@ const Rain = () => {
 };
 
 const Snow = () => {
-  const count = 1000;
+  const count = WEATHER_PARTICLE_COUNT;
   const mesh = useRef<THREE.Points>(null!);
   
   const particles = useMemo(() => {
@@ -124,15 +136,15 @@ const WeatherSystem = ({ weather }: { weather: WeatherType }) => {
       {weather === 'rain' && <Rain />}
       {weather === 'snow' && <Snow />}
       {weather === 'ash' && (
-        <Sparkles count={800} scale={50} size={4} speed={0.4} opacity={0.8} color="#fb923c" position={[0, 5, 0]} />
+        <Sparkles count={ASH_PARTICLE_COUNT} scale={48} size={3} speed={0.32} opacity={0.72} color="#f3b35b" position={[0, 5, 0]} />
       )}
       {weather === 'fog' && (
         <>
-          <fogExp2 attach="fog" args={['#1f2937', 0.03]} />
-          <Cloud position={[-10, 5, -8]} opacity={0.5} speed={0.1} bounds={[15, 4, 15]} segments={20} color="#e5e7eb" />
+          <fogExp2 attach="fog" args={['#112129', 0.028]} />
+          <Cloud position={[-10, 5, -8]} opacity={0.42} speed={0.08} bounds={[15, 4, 15]} segments={12} color="#cfe6e7" />
         </>
       )}
-      {weather !== 'fog' && <fogExp2 attach="fog" args={['#0f172a', weather === 'clear' ? 0.005 : 0.02]} />}
+      {weather !== 'fog' && <fogExp2 attach="fog" args={['#091419', weather === 'clear' ? 0.004 : 0.018]} />}
     </group>
   );
 };
@@ -297,8 +309,8 @@ const Water = () => {
 // --- Main Components ---
 
 const AtmosphericTerrain = () => {
-  const { geometry, colors } = useMemo(() => {
-    const geo = new THREE.PlaneGeometry(140, 140, 150, 150);
+  const geometry = useMemo(() => {
+    const geo = new THREE.PlaneGeometry(140, 140, TERRAIN_SEGMENTS, TERRAIN_SEGMENTS);
     const pos = geo.attributes.position;
     const count = pos.count;
     const colorsArr = new Float32Array(count * 3);
@@ -382,7 +394,7 @@ const AtmosphericTerrain = () => {
     geo.computeVertexNormals();
     geo.setAttribute('color', new THREE.BufferAttribute(colorsArr, 3));
     
-    return { geometry: geo, colors: colorsArr };
+    return geo;
   }, []);
 
   return (
@@ -413,13 +425,13 @@ const RoutePath = ({ start, end, active }: { start: [number, number, number], en
   return (
     <Line
       points={[adjustedStart, adjustedEnd]}
-      color={active ? "#fbbf24" : "#a1a1aa"} // Lighter inactive color
+      color={active ? "#79d8d0" : "#4d6a72"}
       lineWidth={active ? 2 : 1}
       dashed={!active}
       dashScale={2}
       gapSize={1}
       transparent
-      opacity={active ? 0.8 : 0.4}
+      opacity={active ? 0.82 : 0.36}
     />
   );
 };
@@ -429,10 +441,10 @@ const BeaconNode = ({ position, name, type, isCurrent, isReachable, isLocked, on
   useCursor(hovered && !isLocked && !isCurrent);
   
   const color = useMemo(() => {
-    if (isCurrent) return '#10b981';
-    if (type === 'risk_zone') return '#f43f5e';
-    if (type === 'safe_hub') return '#3b82f6';
-    return '#a855f7';
+    if (isCurrent) return '#79d8d0';
+    if (type === 'risk_zone') return '#f28b97';
+    if (type === 'safe_hub') return '#4fd0a6';
+    return '#8e95ff';
   }, [type, isCurrent]);
 
   return (
@@ -487,17 +499,17 @@ const BeaconNode = ({ position, name, type, isCurrent, isReachable, isLocked, on
 
       <Html position={[0, 1.8, 0]} center distanceFactor={15} style={{ pointerEvents: 'none' }}>
         <div className={`
-          px-3 py-1.5 rounded-sm border-l-2 backdrop-blur-md transition-all duration-300
+          rounded-[16px] border px-3 py-2 backdrop-blur-md transition-all duration-300
           ${isCurrent 
-            ? 'bg-emerald-950/80 border-emerald-500 text-emerald-100 shadow-[0_0_15px_rgba(16,185,129,0.3)]' 
+            ? 'border-[rgba(121,216,208,0.34)] bg-[rgba(7,17,22,0.88)] text-[var(--text-primary)] shadow-[0_0_18px_rgba(121,216,208,0.22)]' 
             : hovered 
-              ? 'bg-zinc-800/90 border-zinc-400 text-zinc-100 scale-110 shadow-lg' 
-              : 'bg-black/60 border-zinc-600 text-zinc-400 opacity-80'}
+              ? 'border-white/12 bg-[rgba(10,23,28,0.92)] text-[var(--text-primary)] scale-105 shadow-lg' 
+              : 'border-white/8 bg-[rgba(7,17,22,0.72)] text-[var(--text-muted)] opacity-[0.84]'}
         `}>
-          <div className="text-[10px] font-bold uppercase tracking-widest leading-none mb-0.5">
-            {type.replace('_', ' ')}
+          <div className="mb-1 text-[10px] font-[var(--font-mono)] uppercase tracking-[0.22em] leading-none">
+            {LOCATION_TYPE_LABELS[type] || type.replace('_', ' ')}
           </div>
-          <div className="text-xs font-serif whitespace-nowrap font-medium">
+          <div className="whitespace-nowrap font-[var(--font-display)] text-sm font-semibold leading-none">
             {name}
           </div>
         </div>
@@ -513,23 +525,23 @@ const SceneContent = ({ gameState, onAction, isTyping }: { gameState: GameState,
   return (
     <>
       {/* Environment & Lighting */}
-      <Environment preset="night" blur={0.6} background={false} />
-      <Sky sunPosition={[0, -1, 0]} inclination={0.2} azimuth={180} turbidity={10} rayleigh={0.5} />
-      <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+      <Environment preset="night" blur={0.45} background={false} />
+      <Sky sunPosition={[0, -1, 0]} inclination={0.12} azimuth={180} turbidity={8} rayleigh={0.35} />
+      <Stars radius={100} depth={50} count={STAR_COUNT} factor={3.2} saturation={0} fade speed={0.8} />
       
       <hemisphereLight 
-        intensity={0.6} 
+        intensity={0.54} 
         color="#e0f2fe" 
         groundColor="#1f2937" 
       />
       <directionalLight 
         position={[-10, 20, 10]} 
-        intensity={1.5} 
-        color={weather === 'ash' ? "#fdba74" : "#fff7ed"} 
+        intensity={1.18} 
+        color={weather === 'ash' ? "#f3b35b" : "#f7f3e8"} 
         castShadow
-        shadow-mapSize={[2048, 2048]}
+        shadow-mapSize={[SHADOW_MAP_SIZE, SHADOW_MAP_SIZE]}
       />
-      <ambientLight intensity={0.4} />
+      <ambientLight intensity={0.36} />
 
       <WeatherSystem weather={weather} />
       <AtmosphericTerrain />
@@ -590,25 +602,25 @@ const SceneContent = ({ gameState, onAction, isTyping }: { gameState: GameState,
 
 export const GameMap3D = ({ gameState, onAction, isTyping }: { gameState: GameState, onAction: (a: string) => void, isTyping: boolean }) => {
   return (
-    <div className="w-full h-full bg-zinc-950 relative">
+    <div className="relative h-full w-full overflow-hidden bg-[radial-gradient(circle_at_top,rgba(121,216,208,0.08),transparent_36%),linear-gradient(180deg,#071116_0%,#081318_100%)]">
       <Canvas 
         shadows
         camera={{ position: [0, 12, 24], fov: 35 }}
-        dpr={[1, 2]}
-        gl={{ toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.2 }}
+        dpr={MAP_DPR}
+        gl={{ toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.12, antialias: true }}
       >
         <SceneContent gameState={gameState} onAction={onAction} isTyping={isTyping} />
       </Canvas>
       
       {/* Weather Indicator UI */}
       <div className="absolute top-4 right-4 pointer-events-none">
-        <div className="bg-black/40 backdrop-blur-md border border-white/10 px-3 py-2 rounded-lg text-xs font-mono text-zinc-400 shadow-lg">
-          <div className="uppercase tracking-widest text-[10px] opacity-50 mb-1">Environment</div>
-          <div className="text-zinc-200 flex items-center gap-2 font-bold">
+        <div className="rounded-2xl border border-white/10 bg-[rgba(7,17,22,0.74)] px-3 py-2 text-xs font-[var(--font-mono)] text-[var(--text-muted)] shadow-lg backdrop-blur-md">
+          <div className="mb-1 uppercase tracking-[0.22em] text-[10px] opacity-60">Environment</div>
+          <div className="flex items-center gap-2 font-semibold text-[var(--text-primary)]">
             <span className={`w-2 h-2 rounded-full animate-pulse ${
-                LOCATION_WEATHER[gameState.location] === 'clear' ? 'bg-emerald-500' :
-                LOCATION_WEATHER[gameState.location] === 'ash' ? 'bg-orange-500' :
-                LOCATION_WEATHER[gameState.location] === 'rain' ? 'bg-blue-500' :
+                LOCATION_WEATHER[gameState.location] === 'clear' ? 'bg-[var(--accent-emerald)]' :
+                LOCATION_WEATHER[gameState.location] === 'ash' ? 'bg-[var(--accent-amber)]' :
+                LOCATION_WEATHER[gameState.location] === 'rain' ? 'bg-[var(--accent-cyan)]' :
                 LOCATION_WEATHER[gameState.location] === 'snow' ? 'bg-white' : 'bg-gray-400'
             }`}></span>
             {LOCATION_WEATHER[gameState.location]?.toUpperCase() || 'CLEAR'}
